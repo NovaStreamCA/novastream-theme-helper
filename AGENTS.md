@@ -56,6 +56,7 @@ metadata.
 - `includes/integrations/`: analytics and optional plugin adapters
 - `includes/acf/`: shared ACF page registration only
 - `includes/seo/`: SEO options, fields, metadata, and editor assets
+- `includes/updates/`: public GitHub Releases update infrastructure
 
 Add new behavior to the narrowest relevant module. Add a new module only when
 it has a stable sentinel function and a distinct concern.
@@ -63,6 +64,12 @@ it has a stable sentinel function and a distinct concern.
 Preserve the migrated NovaStream SEO field/group keys, option names,
 `novastream-seo-options` slug, public functions, and social-image filters. The
 standalone plugin may coexist temporarily during rolling deployments.
+
+The updater is also a compatibility API for dependent NovaStream plugins.
+Preserve `novastream_register_github_plugin_update()` and keep repository and
+release data filterable. Public updates must work without credentials. Test
+release discovery, package download, and source-directory normalization when
+the updater changes.
 
 ## Validation
 

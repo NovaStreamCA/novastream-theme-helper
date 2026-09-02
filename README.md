@@ -23,6 +23,7 @@ Yoast, or WooCommerce are unavailable.
 - `includes/integrations/`: analytics, WPForms, and Yoast integration
 - `includes/acf/`: stable Site Options page registration
 - `includes/seo/`: ACF SEO settings, per-entry overrides, and Open Graph output
+- `includes/updates/`: updates from public GitHub Releases
 
 The bootstrap delays module loading until `after_setup_theme` priority `100`.
 This permits rolling deployments alongside older themes that still declare the
@@ -124,6 +125,31 @@ following database and extension contracts remain unchanged:
 The standalone `novastream-seo` plugin should be deactivated after Theme Helper
 1.1.0 or newer is active. During a rolling deployment, Theme Helper detects its
 legacy `novastream_seo()` function and does not load a duplicate module.
+
+## GitHub updates
+
+Theme Helper provides the release updater used by both NovaStream helper
+plugins. No per-site configuration is required while these repositories are
+public:
+
+- `NovaStreamCA/novastream-theme-helper`
+- `NovaStreamCA/novastream-woocommerce-theme-helper`
+
+For each release:
+
+1. Update the `Version` header and matching version constant.
+2. Commit and push the release code.
+3. Create a GitHub release whose tag is the same semantic version, with or
+   without a leading `v` (for example `v1.2.0`).
+4. In WordPress, use **Dashboard > Updates > Check again**.
+
+The updater checks GitHub's public Releases API, downloads the generated source
+archive, and restores the stable plugin directory name during installation.
+Release notes appear as the plugin changelog. These filters support downstream
+configuration:
+
+- `novastream_github_plugin_update_args`
+- `novastream_github_release_data`
 
 ## Validation
 
