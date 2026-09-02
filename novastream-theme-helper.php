@@ -3,7 +3,7 @@
  * Plugin Name: NovaStream Theme Helper
  * Plugin URI:  https://novastream.ca
  * Description: Shared platform behavior, integrations, administration, content policy, analytics, and media infrastructure for NovaStream sites.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author:      NovaStream
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NOVASTREAM_THEME_HELPER_VERSION', '1.0.0' );
+define( 'NOVASTREAM_THEME_HELPER_VERSION', '1.1.0' );
 define( 'NOVASTREAM_THEME_HELPER_FILE', __FILE__ );
 define( 'NOVASTREAM_THEME_HELPER_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -53,6 +53,7 @@ function novastream_theme_helper_bootstrap() {
 		'novastream_add_canadian_wpforms_address_scheme' => 'includes/integrations/plugins.php',
 		'novastream_google_analytics_admin_notice' => 'includes/integrations/analytics.php',
 		'novastream_register_site_options_page'   => 'includes/acf/options.php',
+		'novastream_seo'                          => 'includes/seo/seo.php',
 	);
 	$modules = (array) apply_filters( 'novastream_theme_helper_modules', $modules );
 

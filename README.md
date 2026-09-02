@@ -22,6 +22,7 @@ Yoast, or WooCommerce are unavailable.
 - `includes/content/`: shared search, privacy, comment, and registration policy
 - `includes/integrations/`: analytics, WPForms, and Yoast integration
 - `includes/acf/`: stable Site Options page registration
+- `includes/seo/`: ACF SEO settings, per-entry overrides, and Open Graph output
 
 The bootstrap delays module loading until `after_setup_theme` priority `100`.
 This permits rolling deployments alongside older themes that still declare the
@@ -99,11 +100,30 @@ plugin modules. Important filters include:
 - `novastream_admin_menu_rank`
 - `novastream_featured_image_crop_enabled`
 - `novastream_featured_image_crop_ratio`
+- `novastream_seo_enabled`
+- `novastream_seo_metadata`
+- `novastream_seo_options_page_args`
+- `novastream_seo_field_groups`
 
 `novastream_site_options_page_registered` fires after the ACF page is created.
 Standard WordPress, ACF, WPForms, and Yoast hooks used by the modules remain
 available as well. See `readme.txt` and the inline PHPDoc for configuration
 constants and lower-level media hooks.
+
+### SEO migration compatibility
+
+Theme Helper owns the functionality previously shipped as NovaStream SEO. The
+following database and extension contracts remain unchanged:
+
+- the `novastream-seo-options` admin page slug;
+- the `seo_locations`, `seo_title`, `seo_description`, `seo_image`, and
+  `default_seo_*` field names;
+- the original ACF field and group keys;
+- `novastream_seo_social_image` and `novastream_seo_image_mime_types`.
+
+The standalone `novastream-seo` plugin should be deactivated after Theme Helper
+1.1.0 or newer is active. During a rolling deployment, Theme Helper detects its
+legacy `novastream_seo()` function and does not load a duplicate module.
 
 ## Validation
 

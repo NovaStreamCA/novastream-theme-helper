@@ -1,0 +1,21 @@
+.edit-post-meta-boxes-area.is-side #acf-group_62ec034dd774a .postbox-header {
+	background-color: #6546a6 !important;
+	color: #fff !important;
+}
+
+.edit-post-meta-boxes-area.is-side #acf-group_62ec034dd774a .postbox-header .toggle-indicator {
+	color: #fff !important;
+}
+
+.edit-post-meta-boxes-area.is-side #acf-group_62ec034dd774a .postbox-header .acf-hndle-cog,
+.edit-post-meta-boxes-area.is-side #acf-group_62ec034dd774a .postbox-header .order-higher-indicator,
+.edit-post-meta-boxes-area.is-side #acf-group_62ec034dd774a .postbox-header .order-lower-indicator {
+	display: none !important;
+}
+
+.acf-block-fields .acf-field-62ec0593d7d45,
+.acf-block-fields .acf-field-62ec03ce911b7,
+.acf-block-fields .acf-field-62ec05caba705,
+.acf-block-fields .acf-field-62ec05d6ba706 {
+	display: none !important;
+}

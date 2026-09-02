@@ -13,6 +13,7 @@ This plugin owns reusable WordPress behavior that should survive a theme change:
 - content, privacy, comment, and registration policies;
 - stable ACF Site Options registration;
 - analytics and generic third-party integrations.
+- SEO settings, metadata, and social-sharing integration.
 
 Presentation belongs in themes. Do not move Twig templates, Sass design tokens,
 site branding, blocks, WooCommerce templates, or site-specific field groups into
@@ -54,9 +55,14 @@ metadata.
 - `includes/content/`: shared request and content policies
 - `includes/integrations/`: analytics and optional plugin adapters
 - `includes/acf/`: shared ACF page registration only
+- `includes/seo/`: SEO options, fields, metadata, and editor assets
 
 Add new behavior to the narrowest relevant module. Add a new module only when
 it has a stable sentinel function and a distinct concern.
+
+Preserve the migrated NovaStream SEO field/group keys, option names,
+`novastream-seo-options` slug, public functions, and social-image filters. The
+standalone plugin may coexist temporarily during rolling deployments.
 
 ## Validation
 
