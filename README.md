@@ -31,8 +31,9 @@ same public functions.
 
 ## Site-specific ACF fields
 
-The plugin owns the **Site Options page**, not the fields placed on it. A site
-theme can add any fields it needs without changing this plugin.
+The plugin owns the stable **Site Options page**, while the active theme owns
+the fields placed on it. A site or child theme can add any fields it needs
+without changing this plugin.
 
 The preferred workflow is:
 

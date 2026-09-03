@@ -39,9 +39,10 @@ Add a narrowly named filter before introducing a site-specific conditional.
 Fire an action after registration when downstream code may need the resulting
 object or state.
 
-Site-specific ACF fields belong in that site's theme `acf-json/` directory or
-in code attached to `acf/init`. Target the existing `general-settings` options
-page; do not add those fields to this plugin.
+Site Options fields belong in the theme that presents and consumes them. Store
+them in that theme's `acf-json/` directory or register them in code attached to
+`acf/init`. Target the existing `general-settings` options page; do not add
+theme-owned fields to this plugin.
 
 Sanitize external input, escape rendered output, use capability checks for
 administrative UI, and use safe redirects. Do not print raw analytics or media
