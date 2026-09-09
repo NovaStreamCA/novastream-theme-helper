@@ -156,6 +156,9 @@ function novastream_get_image_optimization_status($attachment_id)
 
     $is_converted = 'image/webp' === $active_mime && $original_exists;
     $webp_supported = wp_image_editor_supports(array('mime_type' => 'image/webp'));
+    $conversion_enabled = ('image/jpeg' === $active_mime && NOVASTREAM_IMAGE_CONVERT_JPEG_TO_WEBP)
+        || ('image/png' === $active_mime && NOVASTREAM_IMAGE_CONVERT_PNG_TO_WEBP);
+    $retry_failed = (bool) get_post_meta($attachment_id, '_novastream_image_optimization_retry_failed', true);
 
     if ($is_converted) {
         $label = __('Optimized WebP', 'novastream-theme-helper');
@@ -167,11 +170,11 @@ function novastream_get_image_optimization_status($attachment_id)
         $label = __('WebP unavailable', 'novastream-theme-helper');
         $state = 'unavailable';
     } else {
-        $conversion_enabled = ('image/jpeg' === $active_mime && NOVASTREAM_IMAGE_CONVERT_JPEG_TO_WEBP)
-            || ('image/png' === $active_mime && NOVASTREAM_IMAGE_CONVERT_PNG_TO_WEBP);
         $active_format = strtoupper((string) pathinfo($active_path, PATHINFO_EXTENSION));
 
-        if ($conversion_enabled) {
+        if ($conversion_enabled && $retry_failed) {
+            $label = __('Optimization failed — regenerate to try again', 'novastream-theme-helper');
+        } elseif ($conversion_enabled) {
             $label = $original_size > $active_size && $active_size > 0
                 ? sprintf(
                     /* translators: %s: current active image format. */
@@ -190,7 +193,9 @@ function novastream_get_image_optimization_status($attachment_id)
                 $active_format
             );
         }
-        $state = $conversion_enabled ? 'pending' : 'disabled';
+        $state = $conversion_enabled
+            ? ($retry_failed ? 'failed' : 'pending')
+            : 'disabled';
     }
 
     $active_reduction = $original_size > $active_size && $active_size > 0
@@ -210,8 +215,163 @@ function novastream_get_image_optimization_status($attachment_id)
             : 0,
         'total_size'          => $total_size,
         'active_reduction'    => $active_reduction,
+        'can_regenerate'      => in_array($state, array('pending', 'failed'), true),
     );
 }
+
+/**
+ * Build the secured URL used to retry image optimization.
+ *
+ * @param int $attachment_id Image attachment ID.
+ * @return string
+ */
+function novastream_get_image_optimization_regeneration_url($attachment_id)
+{
+    $url = add_query_arg(
+        array(
+            'action'        => 'novastream_regenerate_image_optimization',
+            'attachment_id' => (int) $attachment_id,
+        ),
+        admin_url('admin-post.php')
+    );
+
+    return wp_nonce_url($url, 'novastream_regenerate_image_optimization_' . (int) $attachment_id);
+}
+
+/**
+ * Regenerate an image and all registered sizes from its retained source file.
+ *
+ * The previous attachment path and metadata are restored when WordPress cannot
+ * produce the expected WebP, so a failed retry does not leave the attachment in
+ * a less useful state.
+ *
+ * @param int $attachment_id Image attachment ID.
+ * @return array|WP_Error Current optimization status on success, or an error.
+ */
+function novastream_regenerate_image_optimization($attachment_id)
+{
+    $attachment_id = (int) $attachment_id;
+
+    if (!wp_attachment_is_image($attachment_id)) {
+        return new WP_Error(
+            'novastream_invalid_image_attachment',
+            __('The selected attachment is not an image.', 'novastream-theme-helper')
+        );
+    }
+
+    if (!wp_image_editor_supports(array('mime_type' => 'image/webp'))) {
+        return new WP_Error(
+            'novastream_webp_unavailable',
+            __('The server image editor does not support WebP.', 'novastream-theme-helper')
+        );
+    }
+
+    $source_path = wp_get_original_image_path($attachment_id, true);
+
+    if (!$source_path || !is_file($source_path)) {
+        update_post_meta($attachment_id, '_novastream_image_optimization_retry_failed', time());
+
+        return new WP_Error(
+            'novastream_image_source_missing',
+            __('The original image file could not be found.', 'novastream-theme-helper')
+        );
+    }
+
+    if (!function_exists('wp_generate_attachment_metadata')) {
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+    }
+
+    $previous_path = get_attached_file($attachment_id, true);
+    $previous_metadata = wp_get_attachment_metadata($attachment_id);
+    $metadata = wp_generate_attachment_metadata($attachment_id, $source_path);
+
+    if (is_array($metadata) && !empty($metadata['width']) && !empty($metadata['height'])) {
+        wp_update_attachment_metadata($attachment_id, $metadata);
+    }
+
+    $status = novastream_get_image_optimization_status($attachment_id);
+
+    if (!is_array($status) || 'optimized' !== $status['state']) {
+        if ($previous_path) {
+            update_attached_file($attachment_id, $previous_path);
+        }
+
+        wp_update_attachment_metadata($attachment_id, $previous_metadata);
+        update_post_meta($attachment_id, '_novastream_image_optimization_retry_failed', time());
+
+        return new WP_Error(
+            'novastream_image_regeneration_failed',
+            __('WordPress could not regenerate the image as WebP.', 'novastream-theme-helper')
+        );
+    }
+
+    delete_post_meta($attachment_id, '_novastream_image_optimization_retry_failed');
+
+    return $status;
+}
+
+/**
+ * Handle a Media Library image optimization retry.
+ */
+function novastream_handle_image_optimization_regeneration()
+{
+    $attachment_id = isset($_GET['attachment_id']) ? absint(wp_unslash($_GET['attachment_id'])) : 0;
+
+    check_admin_referer('novastream_regenerate_image_optimization_' . $attachment_id);
+
+    if (!$attachment_id || !current_user_can('edit_post', $attachment_id)) {
+        wp_die(
+            esc_html__('You are not allowed to regenerate this image.', 'novastream-theme-helper'),
+            esc_html__('Image regeneration denied', 'novastream-theme-helper'),
+            array('response' => 403)
+        );
+    }
+
+    $result = novastream_regenerate_image_optimization($attachment_id);
+    $notice = is_wp_error($result) ? 'error' : 'success';
+    $redirect = wp_get_referer();
+    $redirect = $redirect ? $redirect : admin_url('upload.php');
+    $redirect = remove_query_arg(array('novastream_image_regenerated', 'attachment_id'), $redirect);
+    $redirect = add_query_arg(
+        array(
+            'novastream_image_regenerated' => $notice,
+            'attachment_id'                => $attachment_id,
+        ),
+        $redirect
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_novastream_regenerate_image_optimization', 'novastream_handle_image_optimization_regeneration');
+
+/**
+ * Show the result of an image optimization retry.
+ */
+function novastream_image_optimization_regeneration_notice()
+{
+    // This read-only query flag is set by the nonce-protected admin-post handler above.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if (empty($_GET['novastream_image_regenerated'])) {
+        return;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $result = sanitize_key(wp_unslash($_GET['novastream_image_regenerated']));
+
+    if ('success' === $result) {
+        $class = 'notice notice-success is-dismissible';
+        $message = __('Image optimization regenerated successfully.', 'novastream-theme-helper');
+    } elseif ('error' === $result) {
+        $class = 'notice notice-error is-dismissible';
+        $message = __('Image optimization could not be regenerated. Check the server image editor and try again.', 'novastream-theme-helper');
+    } else {
+        return;
+    }
+
+    printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
+}
+add_action('admin_notices', 'novastream_image_optimization_regeneration_notice');
 
 /**
  * Render an image optimization report for Media Library interfaces.
@@ -233,6 +393,15 @@ function novastream_render_image_optimization_status($attachment_id, $compact = 
         esc_attr($status['state']),
         esc_html($status['label'])
     );
+    $regenerate = '';
+
+    if ($status['can_regenerate'] && current_user_can('edit_post', $attachment_id)) {
+        $regenerate = sprintf(
+            '<a class="button button-small novastream-image-status__regenerate" href="%1$s">%2$s</a>',
+            esc_url(novastream_get_image_optimization_regeneration_url($attachment_id)),
+            esc_html__('Regenerate', 'novastream-theme-helper')
+        );
+    }
 
     if ($compact) {
         return $badge . sprintf(
@@ -245,7 +414,7 @@ function novastream_render_image_optimization_status($attachment_id, $compact = 
                     $status['active_size'] ? size_format($status['active_size'], 1) : __('Unknown size', 'novastream-theme-helper')
                 )
             )
-        );
+        ) . $regenerate;
     }
 
     $social_fallback = $status['has_social_fallback']
@@ -286,6 +455,10 @@ function novastream_render_image_optimization_status($attachment_id, $compact = 
             esc_html($label),
             $value
         );
+    }
+
+    if ($regenerate) {
+        $html .= '<div class="novastream-image-status__actions">' . $regenerate . '</div>';
     }
 
     return $html . '</div>';
@@ -351,7 +524,7 @@ function novastream_enqueue_image_optimization_admin_styles()
 {
     wp_add_inline_style(
         'common',
-        '.media-types-required-info:has(+.compat-attachment-fields .compat-field-novastream_image_optimization){display:none}.novastream-image-status{display:grid;gap:6px}.novastream-image-status__row{display:grid;gap:2px}.novastream-image-status__row strong{font-size:11px;text-transform:uppercase;color:#646970}.novastream-image-status__badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#dcdcde;color:#1d2327;font-weight:600}.novastream-image-status__badge.is-optimized{background:#d7f0df;color:#005c12}.novastream-image-status__badge.is-warning{background:#fcf0c3;color:#6e4c00}.novastream-image-status__badge.is-pending{background:#dceaf7;color:#004b73}.column-novastream_image_optimization{width:220px}.column-novastream_image_optimization small{display:block;margin-top:5px;color:#646970}'
+        '.media-types-required-info:has(+.compat-attachment-fields .compat-field-novastream_image_optimization){display:none}.novastream-image-status{display:grid;gap:6px}.novastream-image-status__row{display:grid;gap:2px}.novastream-image-status__row strong{font-size:11px;text-transform:uppercase;color:#646970}.novastream-image-status__badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#dcdcde;color:#1d2327;font-weight:600}.novastream-image-status__badge.is-optimized{background:#d7f0df;color:#005c12}.novastream-image-status__badge.is-warning{background:#fcf0c3;color:#6e4c00}.novastream-image-status__badge.is-pending{background:#dceaf7;color:#004b73}.novastream-image-status__badge.is-failed{background:#f6d7d7;color:#8a2424}.novastream-image-status__actions{margin-top:4px}.column-novastream_image_optimization{width:220px}.column-novastream_image_optimization small{display:block;margin-top:5px;color:#646970}.column-novastream_image_optimization .novastream-image-status__regenerate{margin-top:7px}'
     );
 }
 add_action('admin_enqueue_scripts', 'novastream_enqueue_image_optimization_admin_styles');
