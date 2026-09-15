@@ -12,6 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+const NOVASTREAM_SEO_IMAGE_WIDTH  = 1200;
+const NOVASTREAM_SEO_IMAGE_HEIGHT = 630;
+
+/**
+ * Register the hard-cropped fallback used by featured and taxonomy images.
+ */
+function novastream_register_seo_image_size() {
+	add_image_size(
+		'novastream-seo',
+		NOVASTREAM_SEO_IMAGE_WIDTH,
+		NOVASTREAM_SEO_IMAGE_HEIGHT,
+		true
+	);
+}
+
 /**
  * Determine whether ACF can provide the SEO settings interface.
  *
@@ -112,15 +127,20 @@ function novastream_register_seo_fields() {
 					'placement' => 'top',
 				),
 				array(
-					'key'           => 'field_628e3a2755b09',
-					'label'         => __( 'Image', 'novastream-theme-helper' ),
-					'name'          => 'default_seo_image',
-					'type'          => 'image',
-					'instructions'  => __( 'Use an image of at least 200 × 200 pixels. For high-quality sharing previews, 1200 × 630 pixels is recommended.', 'novastream-theme-helper' ),
-					'return_format' => 'url',
-					'preview_size'  => 'medium',
-					'library'       => 'all',
-					'mime_types'    => apply_filters( 'novastream_seo_image_mime_types', '' ),
+					'key'                 => 'field_628e3a2755b09',
+					'label'               => __( 'Image', 'novastream-theme-helper' ),
+					'name'                => 'default_seo_image',
+					'type'                => 'image_aspect_ratio_crop',
+					'instructions'        => __( 'Select an image at least 1200 × 630 pixels. It will be hard-cropped to exactly 1200 × 630 pixels for social sharing.', 'novastream-theme-helper' ),
+					'crop_type'           => 'pixel_size',
+					'aspect_ratio_width'  => NOVASTREAM_SEO_IMAGE_WIDTH,
+					'aspect_ratio_height' => NOVASTREAM_SEO_IMAGE_HEIGHT,
+					'min_width'           => NOVASTREAM_SEO_IMAGE_WIDTH,
+					'min_height'          => NOVASTREAM_SEO_IMAGE_HEIGHT,
+					'return_format'       => 'url',
+					'preview_size'        => 'medium',
+					'library'             => 'all',
+					'mime_types'          => apply_filters( 'novastream_seo_image_mime_types', '' ),
 				),
 				array(
 					'key'          => 'field_628e3a3b55b0a',
@@ -201,9 +221,12 @@ function novastream_register_seo_fields() {
 					'label'               => __( 'Image', 'novastream-theme-helper' ),
 					'name'                => 'seo_image',
 					'type'                => 'image_aspect_ratio_crop',
-					'crop_type'           => 'aspect_ratio',
-					'aspect_ratio_width'  => 1200,
-					'aspect_ratio_height' => 630,
+					'instructions'        => __( 'Select an image at least 1200 × 630 pixels. It will be hard-cropped to exactly 1200 × 630 pixels for social sharing.', 'novastream-theme-helper' ),
+					'crop_type'           => 'pixel_size',
+					'aspect_ratio_width'  => NOVASTREAM_SEO_IMAGE_WIDTH,
+					'aspect_ratio_height' => NOVASTREAM_SEO_IMAGE_HEIGHT,
+					'min_width'           => NOVASTREAM_SEO_IMAGE_WIDTH,
+					'min_height'          => NOVASTREAM_SEO_IMAGE_HEIGHT,
 					'return_format'       => 'url',
 					'preview_size'        => 'medium',
 					'library'             => 'all',
@@ -276,6 +299,46 @@ function novastream_seo_get_field( $name, $post_id = false ) {
 }
 
 /**
+ * Resolve the pixel dimensions of the exact social image URL being emitted.
+ *
+ * @param string $image_url Public image URL.
+ * @return array{width:int,height:int}
+ */
+function novastream_get_seo_image_dimensions( $image_url ) {
+	$dimensions = array(
+		'width'  => 0,
+		'height' => 0,
+	);
+	$image_url  = (string) $image_url;
+
+	if ( '' === $image_url ) {
+		return $dimensions;
+	}
+
+	$uploads  = wp_get_upload_dir();
+	$base_url = isset( $uploads['baseurl'] ) ? trailingslashit( $uploads['baseurl'] ) : '';
+	$base_dir = isset( $uploads['basedir'] ) ? trailingslashit( $uploads['basedir'] ) : '';
+
+	if ( $base_url && $base_dir && str_starts_with( $image_url, $base_url ) ) {
+		$relative_path = rawurldecode( substr( $image_url, strlen( $base_url ) ) );
+		$image_path    = path_join( $base_dir, $relative_path );
+		$image_size    = is_file( $image_path ) ? wp_getimagesize( $image_path ) : false;
+
+		if ( $image_size ) {
+			$dimensions['width']  = (int) $image_size[0];
+			$dimensions['height'] = (int) $image_size[1];
+		}
+	}
+
+	$dimensions = (array) apply_filters( 'novastream_seo_image_dimensions', $dimensions, $image_url );
+
+	return array(
+		'width'  => absint( $dimensions['width'] ?? 0 ),
+		'height' => absint( $dimensions['height'] ?? 0 ),
+	);
+}
+
+/**
  * Build the metadata values for the current request.
  *
  * @return array<string, mixed>
@@ -307,7 +370,7 @@ function novastream_get_seo_metadata() {
 	}
 
 	if ( ! $image && $post_id && has_post_thumbnail( $post_id ) ) {
-		$image = get_the_post_thumbnail_url( $post_id, 'full' );
+		$image = get_the_post_thumbnail_url( $post_id, 'novastream-seo' );
 	}
 
 	if ( ! $image ) {
@@ -327,17 +390,22 @@ function novastream_get_seo_metadata() {
 			$term_link   = get_term_link( $term );
 			$url         = is_wp_error( $term_link ) ? $url : $term_link;
 			$thumbnail   = get_term_meta( $term->term_id, 'thumbnail_id', true );
-			$image       = $thumbnail ? wp_get_attachment_url( (int) $thumbnail ) : novastream_seo_get_field( 'default_seo_image', 'option' );
+			$image       = $thumbnail ? wp_get_attachment_image_url( (int) $thumbnail, 'novastream-seo' ) : novastream_seo_get_field( 'default_seo_image', 'option' );
 		}
 	}
 
+	$image      = apply_filters( 'novastream_seo_social_image', $image, $post_id );
+	$dimensions = novastream_get_seo_image_dimensions( $image );
+
 	$metadata = array(
-		'title'       => wp_strip_all_tags( (string) $title ),
-		'description' => wp_strip_all_tags( (string) $description ),
-		'url'         => $url,
-		'site_name'   => get_bloginfo( 'name' ),
-		'image'       => apply_filters( 'novastream_seo_social_image', $image, $post_id ),
-		'post_id'     => $post_id,
+		'title'        => wp_strip_all_tags( (string) $title ),
+		'description'  => wp_strip_all_tags( (string) $description ),
+		'url'          => $url,
+		'site_name'    => get_bloginfo( 'name' ),
+		'image'        => $image,
+		'image_width'  => $dimensions['width'],
+		'image_height' => $dimensions['height'],
+		'post_id'      => $post_id,
 	);
 
 	return (array) apply_filters( 'novastream_seo_metadata', $metadata );
@@ -351,15 +419,21 @@ function novastream_seo() {
 		return;
 	}
 
-	$metadata = novastream_get_seo_metadata();
+	$metadata     = novastream_get_seo_metadata();
+	$twitter_card = $metadata['image'] ? 'summary_large_image' : 'summary';
+	$twitter_card = apply_filters( 'novastream_seo_twitter_card', $twitter_card, $metadata );
+
+	printf( '<meta name="twitter:card" content="%s">' . "\n", esc_attr( $twitter_card ) );
 
 	if ( '' !== $metadata['description'] ) {
 		printf( '<meta name="description" content="%s">' . "\n", esc_attr( $metadata['description'] ) );
 		printf( '<meta property="og:description" content="%s">' . "\n", esc_attr( $metadata['description'] ) );
+		printf( '<meta name="twitter:description" content="%s">' . "\n", esc_attr( $metadata['description'] ) );
 	}
 
 	if ( '' !== $metadata['title'] ) {
 		printf( '<meta property="og:title" content="%s">' . "\n", esc_attr( $metadata['title'] ) );
+		printf( '<meta name="twitter:title" content="%s">' . "\n", esc_attr( $metadata['title'] ) );
 	}
 
 	if ( $metadata['url'] ) {
@@ -372,6 +446,13 @@ function novastream_seo() {
 
 	if ( $metadata['image'] ) {
 		printf( '<meta property="og:image" content="%s">' . "\n", esc_url( $metadata['image'] ) );
+
+		if ( ! empty( $metadata['image_width'] ) && ! empty( $metadata['image_height'] ) ) {
+			printf( '<meta property="og:image:width" content="%d">' . "\n", absint( $metadata['image_width'] ) );
+			printf( '<meta property="og:image:height" content="%d">' . "\n", absint( $metadata['image_height'] ) );
+		}
+
+		printf( '<meta name="twitter:image" content="%s">' . "\n", esc_url( $metadata['image'] ) );
 	}
 }
 
@@ -392,6 +473,7 @@ add_filter( 'acf/location/rule_types', 'acf_location_rules_types' );
 add_filter( 'acf/location/rule_operators', 'acf_location_rules_operators' );
 add_filter( 'acf/location/rule_values/seo', 'acf_location_rule_values_seo' );
 add_filter( 'acf/location/rule_match/seo', 'acf_location_rule_match_seo', 10, 4 );
+add_action( 'init', 'novastream_register_seo_image_size' );
 add_action( 'acf/init', 'novastream_register_seo_fields', 20 );
 add_action( 'admin_menu', 'novastream_seo_admin_menu', 20 );
 add_action( 'admin_enqueue_scripts', 'seo_style' );

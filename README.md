@@ -104,6 +104,8 @@ plugin modules. Important filters include:
 - `novastream_featured_image_crop_ratio`
 - `novastream_seo_enabled`
 - `novastream_seo_metadata`
+- `novastream_seo_image_dimensions`
+- `novastream_seo_twitter_card`
 - `novastream_seo_options_page_args`
 - `novastream_seo_field_groups`
 
