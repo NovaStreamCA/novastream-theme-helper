@@ -133,6 +133,8 @@ function novastream_get_admin_menu_group($slug)
     if (
         in_array($slug, array('edit.php', 'upload.php', 'edit.php?post_type=page'), true)
         || str_starts_with($slug, 'edit.php?post_type=')
+        || 'nestedpages' === $slug
+        || str_starts_with($slug, 'nestedpages-')
         || str_contains($slug, 'wpforms')
     ) {
         return apply_filters('novastream_admin_menu_group', 'content', $slug);
@@ -156,6 +158,7 @@ function novastream_get_admin_menu_rank($group, $slug)
             'edit.php'                => 10,
             'upload.php'              => 20,
             'edit.php?post_type=page' => 30,
+            'nestedpages'             => 30,
         ),
         'management' => array(
             'themes.php'                         => 10,

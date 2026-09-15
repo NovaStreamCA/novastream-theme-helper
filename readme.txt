@@ -3,7 +3,7 @@ Contributors: novastream
 Tags: platform, media, admin, integrations, acf
 Requires at least: 6.5
 Requires PHP: 8.0
-Stable tag: 1.2.0
+Stable tag: 1.2.4
 License: GPL-2.0-or-later
 
 Shared platform functionality for NovaStream WordPress sites.
@@ -52,6 +52,10 @@ filters. Site-specific ACF field groups should target the stable
 `general-settings` options-page slug.
 
 == Changelog ==
+
+= 1.2.4 =
+* Keep Nested Pages and its post-type screens in the normal WordPress content
+  menu section, with the Pages screen in the standard Pages position.
 
 = 1.2.0 =
 * Add public GitHub Releases update discovery, plugin details, package
