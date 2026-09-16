@@ -3,7 +3,7 @@ Contributors: novastream
 Tags: platform, media, admin, integrations, acf
 Requires at least: 6.5
 Requires PHP: 8.0
-Stable tag: 1.3.0
+Stable tag: 1.2.5
 License: GPL-2.0-or-later
 
 Shared platform functionality for NovaStream WordPress sites.
@@ -54,20 +54,17 @@ filters. Site-specific ACF field groups should target the stable
 
 == Changelog ==
 
-= 1.3.0 =
+= 1.2.5 =
 * Add filterable Organization, WebSite, WebPage, Article, ImageObject, and
   BreadcrumbList JSON-LD while avoiding duplicate schema from WooCommerce and
   recognized full SEO plugins.
 
-= 1.2.6 =
 * Correct Nested Pages trash and restore redirects so WordPress always receives
   a valid admin page title on PHP 8.1 and newer.
 
-= 1.2.5 =
 * Hard-crop SEO images to 1200 × 630 pixels and publish explicit Open Graph
   image dimensions plus Twitter Card metadata.
 
-= 1.2.4 =
 * Keep Nested Pages and its post-type screens in the normal WordPress content
   menu section, with the Pages screen in the standard Pages position.
 
