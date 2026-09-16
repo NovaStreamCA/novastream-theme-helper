@@ -3,7 +3,7 @@ Contributors: novastream
 Tags: platform, media, admin, integrations, acf
 Requires at least: 6.5
 Requires PHP: 8.0
-Stable tag: 1.2.6
+Stable tag: 1.3.0
 License: GPL-2.0-or-later
 
 Shared platform functionality for NovaStream WordPress sites.
@@ -26,7 +26,8 @@ analytics, integrations, and media infrastructure.
   search-query behavior.
 * WPForms and Yoast compatibility integrations.
 * Google Analytics loading from the existing Site Options measurement IDs.
-* ACF-backed SEO defaults and entry overrides with Open Graph metadata output.
+* ACF-backed SEO defaults and entry overrides with social metadata and basic
+  Schema.org JSON-LD output.
 * Update delivery from public NovaStream GitHub Releases.
 
 The public NOVASTREAM_IMAGE_* and NOVASTREAM_FEATURED_IMAGE_CROP_* constants,
@@ -52,6 +53,11 @@ filters. Site-specific ACF field groups should target the stable
 `general-settings` options-page slug.
 
 == Changelog ==
+
+= 1.3.0 =
+* Add filterable Organization, WebSite, WebPage, Article, ImageObject, and
+  BreadcrumbList JSON-LD while avoiding duplicate schema from WooCommerce and
+  recognized full SEO plugins.
 
 = 1.2.6 =
 * Correct Nested Pages trash and restore redirects so WordPress always receives

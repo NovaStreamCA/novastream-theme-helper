@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 const NOVASTREAM_SEO_IMAGE_WIDTH  = 1200;
 const NOVASTREAM_SEO_IMAGE_HEIGHT = 630;
 
+require_once __DIR__ . '/json-ld.php';
+
 /**
  * Register the hard-cropped fallback used by featured and taxonomy images.
  */
@@ -344,7 +346,7 @@ function novastream_get_seo_image_dimensions( $image_url ) {
  * @return array<string, mixed>
  */
 function novastream_get_seo_metadata() {
-	$post_id = get_queried_object_id();
+	$post_id = ( is_singular() || is_home() ) ? get_queried_object_id() : 0;
 	$post    = $post_id ? get_post( $post_id ) : null;
 
 	if ( function_exists( 'is_shop' ) && is_shop() ) {
@@ -381,7 +383,7 @@ function novastream_get_seo_metadata() {
 		$title = get_bloginfo( 'name' );
 	}
 
-	if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+	if ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
@@ -389,8 +391,11 @@ function novastream_get_seo_metadata() {
 			$description = $term->description ?: novastream_seo_get_field( 'default_seo_description', 'option' );
 			$term_link   = get_term_link( $term );
 			$url         = is_wp_error( $term_link ) ? $url : $term_link;
-			$thumbnail   = get_term_meta( $term->term_id, 'thumbnail_id', true );
-			$image       = $thumbnail ? wp_get_attachment_image_url( (int) $thumbnail, 'novastream-seo' ) : novastream_seo_get_field( 'default_seo_image', 'option' );
+
+			if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+				$thumbnail = get_term_meta( $term->term_id, 'thumbnail_id', true );
+				$image     = $thumbnail ? wp_get_attachment_image_url( (int) $thumbnail, 'novastream-seo' ) : novastream_seo_get_field( 'default_seo_image', 'option' );
+			}
 		}
 	}
 
@@ -454,6 +459,8 @@ function novastream_seo() {
 
 		printf( '<meta name="twitter:image" content="%s">' . "\n", esc_url( $metadata['image'] ) );
 	}
+
+	novastream_seo_render_json_ld( $metadata );
 }
 
 /**

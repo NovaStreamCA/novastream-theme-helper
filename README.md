@@ -22,7 +22,8 @@ Yoast, or WooCommerce are unavailable.
 - `includes/content/`: shared search, privacy, comment, and registration policy
 - `includes/integrations/`: analytics, WPForms, and Yoast integration
 - `includes/acf/`: stable Site Options page registration
-- `includes/seo/`: ACF SEO settings, per-entry overrides, and Open Graph output
+- `includes/seo/`: ACF SEO settings, per-entry overrides, social metadata, and
+  basic JSON-LD structured data
 - `includes/updates/`: updates from public GitHub Releases
 
 The bootstrap delays module loading until `after_setup_theme` priority `100`.
@@ -108,6 +109,20 @@ plugin modules. Important filters include:
 - `novastream_seo_metadata`
 - `novastream_seo_image_dimensions`
 - `novastream_seo_twitter_card`
+- `novastream_seo_external_json_ld_provider_active`
+- `novastream_seo_json_ld_enabled`
+- `novastream_seo_json_ld_graph`
+- `novastream_seo_json_ld_data`
+- `novastream_seo_json_ld_organization`
+- `novastream_seo_json_ld_website`
+- `novastream_seo_json_ld_image`
+- `novastream_seo_json_ld_webpage_type`
+- `novastream_seo_json_ld_webpage`
+- `novastream_seo_json_ld_article_post_types`
+- `novastream_seo_json_ld_article_type`
+- `novastream_seo_json_ld_article`
+- `novastream_seo_json_ld_breadcrumb_items`
+- `novastream_seo_json_ld_logo_url`
 - `novastream_seo_options_page_args`
 - `novastream_seo_field_groups`
 
@@ -130,6 +145,15 @@ following database and extension contracts remain unchanged:
 The standalone `novastream-seo` plugin should be deactivated after Theme Helper
 1.1.0 or newer is active. During a rolling deployment, Theme Helper detects its
 legacy `novastream_seo()` function and does not load a duplicate module.
+
+Theme Helper publishes a server-rendered Schema.org `@graph` containing the
+site organization, website, current page, primary image, native WordPress
+breadcrumbs, and Article data for posts. WooCommerce remains responsible for
+Product and commerce breadcrumb schema. The JSON-LD output disables itself when
+a recognized full SEO suite is active; sites can override that decision with
+`novastream_seo_json_ld_enabled` or modify the final graph with
+`novastream_seo_json_ld_graph`. The Organization logo uses the theme's ACF
+`header_logo` option, then falls back to WordPress's Custom Logo.
 
 ## GitHub updates
 

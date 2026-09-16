@@ -3,7 +3,7 @@
  * Plugin Name: NovaStream Theme Helper
  * Plugin URI:  https://novastream.ca
  * Description: Shared platform behavior, integrations, administration, content policy, analytics, and media infrastructure for NovaStream sites.
- * Version:     1.2.6
+ * Version:     1.3.0
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author:      NovaStream
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NOVASTREAM_THEME_HELPER_VERSION', '1.2.6' );
+define( 'NOVASTREAM_THEME_HELPER_VERSION', '1.3.0' );
 define( 'NOVASTREAM_THEME_HELPER_FILE', __FILE__ );
 define( 'NOVASTREAM_THEME_HELPER_PATH', plugin_dir_path( __FILE__ ) );
 
