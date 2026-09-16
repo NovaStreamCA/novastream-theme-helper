@@ -3,7 +3,7 @@ Contributors: novastream
 Tags: platform, media, admin, integrations, acf
 Requires at least: 6.5
 Requires PHP: 8.0
-Stable tag: 1.2.5
+Stable tag: 1.2.6
 License: GPL-2.0-or-later
 
 Shared platform functionality for NovaStream WordPress sites.
@@ -52,6 +52,10 @@ filters. Site-specific ACF field groups should target the stable
 `general-settings` options-page slug.
 
 == Changelog ==
+
+= 1.2.6 =
+* Correct Nested Pages trash and restore redirects so WordPress always receives
+  a valid admin page title on PHP 8.1 and newer.
 
 = 1.2.5 =
 * Hard-crop SEO images to 1200 × 630 pixels and publish explicit Open Graph

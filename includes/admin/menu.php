@@ -60,6 +60,77 @@ function novastream_remove_comments_admin_menu()
 add_action('admin_menu', 'novastream_remove_comments_admin_menu', PHP_INT_MAX);
 
 /**
+ * Send Nested Pages trash confirmations to its canonical plugin screen.
+ *
+ * Nested Pages 3.3.2 rebuilds its redirect from the current edit.php URL,
+ * producing edit.php?page=nestedpages after a page is trashed or restored.
+ * WordPress cannot resolve an admin title for that mixed core/plugin route and
+ * passes null to strip_tags() in admin-header.php on PHP 8.1 and newer.
+ *
+ * @see https://core.trac.wordpress.org/ticket/64283
+ */
+function novastream_redirect_nested_pages_confirmation()
+{
+    if (!apply_filters('novastream_nested_pages_confirmation_redirect_enabled', true)) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if (!$screen || 'edit-page' !== $screen->id || !class_exists('NestedPages\\Redirects')) {
+        return;
+    }
+
+    $nested_page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    if ('' !== $nested_page && 'nestedpages' !== $nested_page) {
+        return;
+    }
+
+    $trashed   = isset($_GET['trashed']) ? absint($_GET['trashed']) : 0;
+    $untrashed = isset($_GET['untrashed']) ? absint($_GET['untrashed']) : 0;
+
+    if ((!$trashed && !$untrashed) || isset($_GET['bulk'])) {
+        return;
+    }
+
+    $enabled_post_types = get_option('nestedpages_posttypes', array());
+    if (!is_array($enabled_post_types) || !array_key_exists('page', $enabled_post_types)) {
+        return;
+    }
+
+    $query_args = array('page' => 'nestedpages');
+
+    if ($trashed) {
+        $query_args['trashed'] = $trashed;
+    }
+
+    if ($untrashed) {
+        $query_args['untrashed'] = $untrashed;
+    }
+
+    if (isset($_GET['ids'])) {
+        $ids = preg_replace('/[^0-9,]/', '', wp_unslash($_GET['ids']));
+        if ('' !== $ids) {
+            $query_args['ids'] = $ids;
+        }
+    }
+
+    if (isset($_GET['locked'])) {
+        $query_args['locked'] = absint($_GET['locked']);
+    }
+
+    $redirect_url = add_query_arg($query_args, admin_url('admin.php'));
+    $redirect_url = apply_filters(
+        'novastream_nested_pages_confirmation_redirect_url',
+        $redirect_url,
+        $query_args
+    );
+
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+add_action('load-edit.php', 'novastream_redirect_nested_pages_confirmation', 1);
+
+/**
  * Remove the Comments shortcut from the admin toolbar.
  *
  * @param WP_Admin_Bar $wp_admin_bar Admin toolbar instance.

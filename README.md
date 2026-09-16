@@ -100,6 +100,8 @@ plugin modules. Important filters include:
 - `novastream_admin_menu_sections`
 - `novastream_admin_menu_group`
 - `novastream_admin_menu_rank`
+- `novastream_nested_pages_confirmation_redirect_enabled`
+- `novastream_nested_pages_confirmation_redirect_url`
 - `novastream_featured_image_crop_enabled`
 - `novastream_featured_image_crop_ratio`
 - `novastream_seo_enabled`
